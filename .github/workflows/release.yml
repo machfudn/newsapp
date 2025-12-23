@@ -61,25 +61,24 @@ jobs:
             --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
-            --out newsapp-final.apk \
+            --out newsapp.apk \
             "$INPUT_APK"
             
-          echo "Signing selesai: newsapp-final.apk"
+          echo "Signing selesai: newsapp.apk"
 
       - name: Upload Result
         uses: actions/upload-artifact@v4
         with:
           name: NewsApp-Official-Release
-          path: newsapp-final.apk
+          path: newsapp.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: newsapp-final.apk
-          name: Release ${{ github.ref_name }}
+          files: newsapp.apk
+          name: NewsApp ${{ github.ref_name }}
           body: |
-            Build otomatis dari GitHub Actions.
             Silakan unduh file APK di bawah ini.
           draft: false
           prerelease: false
