@@ -3,7 +3,7 @@ name: Android Release Build
 on:
   push:
     tags:
-      - 'v*' # Berjalan hanya saat Anda membuat tag (misal: v1.0)
+      - 'v*' 
 
 jobs:
   build:
@@ -30,6 +30,8 @@ jobs:
     # 2. Proses Signing (Tanda Tangan)
     - name: Sign Android Release
       id: sign_app
+      env:
+        ANDROID_HOME: /usr/local/lib/android/sdk
       uses: r0adkll/sign-android-release@v1
       with:
         releaseDirectory: app/build/outputs/apk/release
@@ -37,6 +39,7 @@ jobs:
         alias: ${{ secrets.KEY_ALIAS }}
         keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
         keyPassword: ${{ secrets.KEY_PASSWORD }}
+        buildToolsVersion: "34.0.0"
 
     # 3. Upload Hasilnya ke GitHub
     - name: Upload Signed APK
