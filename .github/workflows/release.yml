@@ -4,70 +4,84 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Menambahkan izin akses agar bisa membuat Release
+    permissions:
+      contents: write
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-    - name: Build Release APK
-      # Menjalankan build secara bersih
-      run: ./gradlew clean assembleRelease
+      - name: Build Release APK
+        run: ./gradlew clean assembleRelease
 
-    - name: Sign APK Manually
-      env:
-        KEYSTORE_DATA: ${{ secrets.KEYSTORE_BASE64 }}
-      run: |
-        # 1. Dekode Keystore
-        printf "%s" "$KEYSTORE_DATA" | base64 -di > release.keystore
-        
-        # 2. Cari semua file APK yang dihasilkan
-        # Ini akan mencari di semua subfolder (app/build/ dsb)
-        echo "Mencari file APK hasil build..."
-        ALL_APKS=$(find . -name "*.apk" -type f)
-        echo "File ditemukan: $ALL_APKS"
-        
-        # 3. Pilih file APK yang ada di folder release
-        INPUT_APK=$(find . -name "*.apk" -path "*/release/*" -type f | head -n 1)
-        
-        if [ -z "$INPUT_APK" ]; then
-          echo "ERROR: File APK tidak ditemukan di folder release!"
-          exit 1
-        fi
-        
-        # 4. Cari Build Tools
-        BUILD_TOOLS_PATH=$(ls -d $ANDROID_SDK_ROOT/build-tools/3* | tail -1)
-        
-        # 5. Proses Signing
-        $BUILD_TOOLS_PATH/apksigner sign \
-          --ks release.keystore \
-          --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
-          --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
-          --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
-          --v1-signing-enabled true \
-          --v2-signing-enabled true \
-          --out newsapp-final.apk \
-          "$INPUT_APK"
-          
-        echo "Signing selesai: newsapp-final.apk"
+      - name: Sign APK Manually
+        env:
+          KEYSTORE_DATA: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          # 1. Dekode Keystore
+          printf "%s" "$KEYSTORE_DATA" | base64 -di > release.keystore
 
-    - name: Upload Result
-      uses: actions/upload-artifact@v4
-      with:
-        name: NewsApp-Official-Release
-        # File diletakkan di root agar mudah ditemukan
-        path: newsapp-final.apk
+          # 2. Cari semua file APK yang dihasilkan
+          echo "Mencari file APK hasil build..."
+          ALL_APKS=$(find . -name "*.apk" -type f)
+          echo "File ditemukan: $ALL_APKS"
+
+          # 3. Pilih file APK yang ada di folder release
+          INPUT_APK=$(find . -name "*.apk" -path "*/release/*" -type f | head -n 1)
+
+          if [ -z "$INPUT_APK" ]; then
+            echo "ERROR: File APK tidak ditemukan di folder release!"
+            exit 1
+          fi
+
+          # 4. Cari Build Tools
+          BUILD_TOOLS_PATH=$(ls -d $ANDROID_SDK_ROOT/build-tools/3* | tail -1)
+
+          # 5. Proses Signing
+          $BUILD_TOOLS_PATH/apksigner sign \
+            --ks release.keystore \
+            --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+            --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
+            --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --out newsapp-final.apk \
+            "$INPUT_APK"
+            
+          echo "Signing selesai: newsapp-final.apk"
+
+      - name: Upload Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: NewsApp-Official-Release
+          path: newsapp-final.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: newsapp-final.apk
+          name: Release ${{ github.ref_name }}
+          body: |
+            Build otomatis dari GitHub Actions.
+            Silakan unduh file APK di bawah ini.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
