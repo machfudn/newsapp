@@ -53,7 +53,7 @@ dependencies {
     // CardView
     implementation("androidx.cardview:cardview:1.0.0")
 
-    // TAMBAHKAN INI UNTUK VIEWMODEL (Wajib untuk viewModelScope)
+    // viewModelScope
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
